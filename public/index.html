@@ -7,10 +7,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Tinderu" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="icon" type="image/png" href="/icons/icon-192.png" />
-  <link rel="stylesheet" href="/css/style.css?v=7" />
+  <link rel="stylesheet" href="/css/style.css?v=9" />
   <title>Tinderu</title>
 </head>
 <body>
@@ -96,13 +97,13 @@
           </select>
         </div>
         <ul id="users-list" class="users-list"></ul>
-        <p id="users-empty" class="empty hidden">Никого не найдено</p>
+        <p id="users-empty" class="empty">Загрузка…</p>
       </section>
 
       <section id="leaderboard" class="screen hidden">
         <h2 class="section-title">Рейтинг</h2>
         <ol id="leaderboard-list" class="leaderboard-list"></ol>
-        <p id="leaderboard-empty" class="empty hidden">Никого в рейтинге</p>
+        <p id="leaderboard-empty" class="empty">Загрузка…</p>
       </section>
 
       <section id="profile" class="screen hidden">
@@ -184,11 +185,18 @@
       </div>
     </div>
 
-  <script src="/js/app.js?v=7" type="module"></script>
   <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js?v=7").then((reg) => reg.update()).catch(() => {});
-    }
+    (async () => {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    })();
   </script>
+  <script src="/js/app.js?v=9" type="module"></script>
 </body>
 </html>

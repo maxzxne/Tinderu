@@ -1,7 +1,29 @@
-import { initSocial } from "./social.js";
-import { hideOverlay } from "./overlay.js";
+import { initSocial } from "./social.js?v=9";
 
+const APP_VERSION = "9";
 const STORAGE_KEY = "tinderu_user";
+
+function showOverlay(el) {
+  if (!el) return;
+  el.classList.remove("hidden");
+  el.hidden = false;
+  el.style.removeProperty("display");
+}
+
+function hideOverlay(el) {
+  if (!el) return;
+  el.classList.add("hidden");
+  el.hidden = true;
+  el.style.display = "none";
+}
+
+const prevVersion = localStorage.getItem("tinderu_app_version");
+if (prevVersion && prevVersion !== APP_VERSION) {
+  localStorage.setItem("tinderu_app_version", APP_VERSION);
+  location.reload();
+} else {
+  localStorage.setItem("tinderu_app_version", APP_VERSION);
+}
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -511,6 +533,8 @@ async function init() {
     escapeHtml,
     els,
     user,
+    showOverlay,
+    hideOverlay,
     get activeTab() {
       return activeTab;
     },
@@ -518,10 +542,14 @@ async function init() {
   });
 
   showLoggedIn();
-  await loadCards();
-  await socialApi.loadMatchesList();
-  socialApi.loadUsers();
-  socialApi.loadLeaderboard();
+  try {
+    await loadCards();
+    await socialApi.loadMatchesList();
+    await socialApi.loadUsers();
+    await socialApi.loadLeaderboard();
+  } catch (err) {
+    showToast(err.message);
+  }
 }
 
 init();

@@ -1,5 +1,3 @@
-import { showOverlay, hideOverlay } from "./overlay.js";
-
 const DEFAULT_AVATAR = "/icons/icon-192.png";
 
 function normalizePeer(peer) {
@@ -33,7 +31,7 @@ function personLabel(peer) {
 }
 
 export function initSocial(ctx) {
-  const { api, showToast, escapeHtml, els, user } = ctx;
+  const { api, showToast, escapeHtml, els, user, showOverlay, hideOverlay } = ctx;
 
   let chatPoll = null;
   let callPoll = null;
@@ -105,9 +103,15 @@ export function initSocial(ctx) {
 
   async function loadUsers() {
     try {
+    if (els.usersEmpty) {
+      els.usersEmpty.textContent = "Загрузка…";
+      els.usersEmpty.classList.remove("hidden");
+    }
     const sort = els.usersSort?.value || "rating";
     const people = await api(`/api/users?sort=${sort}`);
+    if (!els.usersList) throw new Error("Экран «Люди» не найден — обновите страницу");
     els.usersList.innerHTML = "";
+    els.usersEmpty.textContent = people.length ? "" : "Никого не найдено";
     els.usersEmpty.classList.toggle("hidden", people.length > 0);
     for (const p of people) {
       const person = normalizePeer(p);
@@ -125,14 +129,24 @@ export function initSocial(ctx) {
       els.usersList.appendChild(li);
     }
     } catch (err) {
+      if (els.usersEmpty) {
+        els.usersEmpty.textContent = err.message;
+        els.usersEmpty.classList.remove("hidden");
+      }
       showToast(err.message);
     }
   }
 
   async function loadLeaderboard() {
     try {
+    if (els.leaderboardEmpty) {
+      els.leaderboardEmpty.textContent = "Загрузка…";
+      els.leaderboardEmpty.classList.remove("hidden");
+    }
     const board = await api("/api/ratings/leaderboard");
+    if (!els.leaderboardList) throw new Error("Экран «Топ» не найден — обновите страницу");
     els.leaderboardList.innerHTML = "";
+    els.leaderboardEmpty.textContent = board.length ? "" : "Никого в рейтинге";
     els.leaderboardEmpty.classList.toggle("hidden", board.length > 0);
     board.forEach((p, i) => {
       const person = normalizePeer(p);
@@ -149,6 +163,10 @@ export function initSocial(ctx) {
       els.leaderboardList.appendChild(li);
     });
     } catch (err) {
+      if (els.leaderboardEmpty) {
+        els.leaderboardEmpty.textContent = err.message;
+        els.leaderboardEmpty.classList.remove("hidden");
+      }
       showToast(err.message);
     }
   }

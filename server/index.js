@@ -48,6 +48,25 @@ db.exec(`
     FOREIGN KEY (profile_id) REFERENCES profiles(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS user_swipes (
+    swiper_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    liked INTEGER NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (swiper_id, target_id),
+    FOREIGN KEY (swiper_id) REFERENCES users(id),
+    FOREIGN KEY (target_id) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS user_likes (
+    from_user_id TEXT NOT NULL,
+    to_user_id TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (from_user_id, to_user_id),
+    FOREIGN KEY (from_user_id) REFERENCES users(id),
+    FOREIGN KEY (to_user_id) REFERENCES users(id)
+  );
 `);
 
 function migrateUsers() {
@@ -200,6 +219,27 @@ function deleteUpload(photoPath) {
   if (fs.existsSync(file)) fs.unlinkSync(file);
 }
 
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function seedDemoUserLikes() {
+  const ivan = db.prepare("SELECT id FROM users WHERE login = 'demo_ivan'").get();
+  const anna = db.prepare("SELECT id FROM users WHERE login = 'demo_anna'").get();
+  if (!ivan || !anna) return;
+
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO user_likes (from_user_id, to_user_id) VALUES (?, ?)"
+  );
+  insert.run(anna.id, ivan.id);
+  insert.run(ivan.id, anna.id);
+}
+
 function seedProfileLikes(userId, userGender) {
   const targetGender = oppositeGender(userGender);
   const likers = db
@@ -284,6 +324,7 @@ function seedDemoUsers() {
 
 seedProfiles();
 seedDemoUsers();
+seedDemoUserLikes();
 
 const social = registerSocialRoutes(app, db, {
   getUserId: (req) => req.headers["x-user-id"] || req.body?.userId,
@@ -456,50 +497,116 @@ app.get("/api/cards", (req, res) => {
 
   const targetGender = oppositeGender(me.gender);
 
-  const cards = db
+  const profileCards = db
     .prepare(
-      `SELECT p.id, p.name, p.age, p.bio, p.photo, p.gender
+      `SELECT p.id, p.name, p.age, p.bio, p.photo, p.gender, 'profile' AS cardType
        FROM profiles p
        WHERE p.gender = ?
-         AND p.id NOT IN (SELECT profile_id FROM swipes WHERE user_id = ?)
-       ORDER BY RANDOM()
-       LIMIT 20`
+         AND p.id NOT IN (SELECT profile_id FROM swipes WHERE user_id = ?)`
     )
     .all(targetGender, userId);
 
-  res.json(cards);
+  const userRows = db
+    .prepare(
+      `SELECT u.id, u.name, u.bio, u.photo, u.gender, u.date_of_birth
+       FROM users u
+       WHERE u.id != ?
+         AND u.gender = ?
+         AND u.id NOT IN (SELECT target_id FROM user_swipes WHERE swiper_id = ?)`
+    )
+    .all(userId, targetGender, userId);
+
+  const userCards = userRows.map((u) => ({
+    id: u.id,
+    name: u.name,
+    age: calcAge(u.date_of_birth),
+    bio: u.bio || "",
+    photo: u.photo,
+    gender: u.gender,
+    cardType: "user",
+  }));
+
+  res.json(shuffle([...profileCards, ...userCards]).slice(0, 20));
 });
 
 app.post("/api/swipe", (req, res) => {
   const userId = getUserId(req);
-  const { profileId, liked } = req.body || {};
+  const { targetId, targetType, profileId, liked } = req.body || {};
   if (!userId) return res.status(401).json({ error: "Нужен X-User-Id" });
-  if (!profileId) return res.status(400).json({ error: "Нужен profileId" });
 
-  const me = getCurrentUser(userId);
-  const profile = db.prepare("SELECT id, gender FROM profiles WHERE id = ?").get(profileId);
-  if (!profile) return res.status(404).json({ error: "Профиль не найден" });
-  if (profile.gender === me.gender) {
-    return res.status(400).json({ error: "Нельзя свайпать профиль своего пола" });
+  const id = targetId || profileId;
+  const type = targetType || (profileId ? "profile" : null);
+  if (!id) return res.status(400).json({ error: "Нужен targetId" });
+  if (!type || !["profile", "user"].includes(type)) {
+    return res.status(400).json({ error: "Некорректный targetType" });
   }
 
-  db.prepare(
-    `INSERT INTO swipes (user_id, profile_id, liked)
-     VALUES (?, ?, ?)
-     ON CONFLICT(user_id, profile_id) DO UPDATE SET liked = excluded.liked`
-  ).run(userId, profileId, liked ? 1 : 0);
+  const me = getCurrentUser(userId);
+  if (!me) return res.status(404).json({ error: "Пользователь не найден" });
 
   let match = false;
-  if (liked) {
-    const mutual = db
-      .prepare("SELECT 1 FROM profile_likes WHERE profile_id = ? AND user_id = ?")
-      .get(profileId, userId);
-    if (mutual) {
-      match = true;
-      db.prepare(
-        "DELETE FROM profile_likes WHERE profile_id = ? AND user_id = ?"
-      ).run(profileId, userId);
-      social.createMatch(userId, profileId, "profile");
+
+  if (type === "profile") {
+    const profile = db.prepare("SELECT id, gender FROM profiles WHERE id = ?").get(id);
+    if (!profile) return res.status(404).json({ error: "Профиль не найден" });
+    if (profile.gender === me.gender) {
+      return res.status(400).json({ error: "Нельзя свайпать профиль своего пола" });
+    }
+
+    db.prepare(
+      `INSERT INTO swipes (user_id, profile_id, liked)
+       VALUES (?, ?, ?)
+       ON CONFLICT(user_id, profile_id) DO UPDATE SET liked = excluded.liked`
+    ).run(userId, id, liked ? 1 : 0);
+
+    if (liked) {
+      const mutual = db
+        .prepare("SELECT 1 FROM profile_likes WHERE profile_id = ? AND user_id = ?")
+        .get(id, userId);
+      if (mutual) {
+        match = true;
+        db.prepare("DELETE FROM profile_likes WHERE profile_id = ? AND user_id = ?").run(
+          id,
+          userId
+        );
+        social.createMatch(userId, id, "profile");
+      }
+    }
+  } else {
+    const peer = getCurrentUser(id);
+    if (!peer) return res.status(404).json({ error: "Пользователь не найден" });
+    if (peer.id === userId) return res.status(400).json({ error: "Нельзя свайпать себя" });
+    if (peer.gender === me.gender) {
+      return res.status(400).json({ error: "Нельзя свайпать пользователя своего пола" });
+    }
+
+    db.prepare(
+      `INSERT INTO user_swipes (swiper_id, target_id, liked)
+       VALUES (?, ?, ?)
+       ON CONFLICT(swiper_id, target_id) DO UPDATE SET liked = excluded.liked`
+    ).run(userId, id, liked ? 1 : 0);
+
+    if (liked) {
+      const mutual = db
+        .prepare(
+          "SELECT 1 FROM user_likes WHERE from_user_id = ? AND to_user_id = ?"
+        )
+        .get(id, userId);
+      if (mutual) {
+        match = true;
+        db.prepare(
+          "DELETE FROM user_likes WHERE from_user_id = ? AND to_user_id = ?"
+        ).run(id, userId);
+        db.prepare(
+          "DELETE FROM user_likes WHERE from_user_id = ? AND to_user_id = ?"
+        ).run(userId, id);
+        social.createMatch(userId, id, "user");
+        social.createMatch(id, userId, "user");
+      } else {
+        db.prepare(
+          "INSERT OR IGNORE INTO user_likes (from_user_id, to_user_id) VALUES (?, ?)"
+        ).run(userId, id);
+      }
     }
   }
 

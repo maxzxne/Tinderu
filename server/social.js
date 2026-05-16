@@ -277,6 +277,20 @@ export function registerSocialRoutes(app, db, helpers) {
       )
       .all(userId, targetGender, userId);
     for (const r of liked) createMatch(userId, r.id, "profile");
+
+    const mutualUsers = db
+      .prepare(
+        `SELECT us.target_id AS id
+         FROM user_swipes us
+         INNER JOIN user_likes ul
+           ON ul.from_user_id = us.target_id AND ul.to_user_id = us.swiper_id
+         WHERE us.swiper_id = ? AND us.liked = 1`
+      )
+      .all(userId);
+    for (const r of mutualUsers) {
+      createMatch(userId, r.id, "user");
+      createMatch(r.id, userId, "user");
+    }
   }
 
   app.get("/api/matches", (req, res) => {

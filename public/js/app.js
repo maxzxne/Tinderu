@@ -1,6 +1,6 @@
-import { initSocial } from "./social.js?v=9";
+import { initSocial } from "./social.js?v=10";
 
-const APP_VERSION = "9";
+const APP_VERSION = "10";
 const STORAGE_KEY = "tinderu_user";
 
 function showOverlay(el) {
@@ -315,20 +315,24 @@ async function onAuthSuccess(u) {
   socialApi?.loadMatchesList();
 }
 
-function createCardEl(profile) {
+function createCardEl(card) {
   const el = document.createElement("article");
   el.className = "card";
-  el.dataset.id = profile.id;
+  el.dataset.id = card.id;
+  el.dataset.type = card.cardType || "profile";
+  const badge =
+    card.cardType === "user" ? `<span class="card-badge">Пользователь</span>` : "";
   el.innerHTML = `
-    <img src="${profile.photo}" alt="${escapeHtml(profile.name)}" loading="lazy" draggable="false" />
+    <img src="${card.photo}" alt="${escapeHtml(card.name)}" loading="lazy" draggable="false" />
+    ${badge}
     <div class="card-stamp like">LIKE</div>
     <div class="card-stamp nope">NOPE</div>
     <div class="card-info">
-      <h2>${escapeHtml(profile.name)}, ${profile.age}</h2>
-      <p>${escapeHtml(profile.bio)}</p>
+      <h2>${escapeHtml(card.name)}, ${card.age}</h2>
+      <p>${escapeHtml(card.bio)}</p>
     </div>
   `;
-  attachSwipe(el, profile);
+  attachSwipe(el, card);
   return el;
 }
 
@@ -354,13 +358,13 @@ async function loadCards() {
   renderStack();
 }
 
-async function swipe(profileId, liked) {
+async function swipe(targetId, targetType, liked) {
   if (swiping) return;
   swiping = true;
   try {
     const { match } = await api("/api/swipe", {
       method: "POST",
-      body: JSON.stringify({ profileId, liked }),
+      body: JSON.stringify({ targetId, targetType, liked }),
     });
     cards.pop();
     if (match) {
@@ -373,7 +377,7 @@ async function swipe(profileId, liked) {
   }
 }
 
-function attachSwipe(el, profile) {
+function attachSwipe(el, card) {
   let startX = 0;
   let currentX = 0;
   let dragging = false;
@@ -411,10 +415,10 @@ function attachSwipe(el, profile) {
 
     if (currentX > 100) {
       el.style.transform = "translateX(120%) rotate(20deg)";
-      await swipe(profile.id, true);
+      await swipe(card.id, card.cardType || "profile", true);
     } else if (currentX < -100) {
       el.style.transform = "translateX(-120%) rotate(-20deg)";
-      await swipe(profile.id, false);
+      await swipe(card.id, card.cardType || "profile", false);
     } else {
       el.style.transform = "";
       stampLike.style.opacity = 0;
@@ -500,7 +504,7 @@ els.btnLike.addEventListener("click", () => {
   if (!card) return;
   card.style.transition = "transform 0.25s ease";
   card.style.transform = "translateX(120%) rotate(20deg)";
-  swipe(card.dataset.id, true);
+  swipe(card.dataset.id, card.dataset.type || "profile", true);
 });
 
 els.btnNope.addEventListener("click", () => {
@@ -508,7 +512,7 @@ els.btnNope.addEventListener("click", () => {
   if (!card) return;
   card.style.transition = "transform 0.25s ease";
   card.style.transform = "translateX(-120%) rotate(-20deg)";
-  swipe(card.dataset.id, false);
+  swipe(card.dataset.id, card.dataset.type || "profile", false);
 });
 
 async function init() {

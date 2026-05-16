@@ -11,7 +11,3 @@ services:
         value: 3000
       - key: DATA_DIR
         value: /data
-    disk:
-      name: tinderu-data
-      mountPath: /data
-      sizeGB: 1

@@ -1,4 +1,5 @@
 import { initSocial } from "./social.js";
+import { hideOverlay } from "./overlay.js";
 
 const STORAGE_KEY = "tinderu_user";
 
@@ -147,8 +148,17 @@ function hideAllScreens() {
   els.profile.classList.add("hidden");
 }
 
+function hideOverlays() {
+  hideOverlay(els.chatOverlay);
+  hideOverlay(els.callOverlay);
+  hideOverlay(els.incomingCall);
+  hideOverlay(els.rateOverlay);
+}
+
 function showLoggedOut() {
   hideAllScreens();
+  hideOverlays();
+  socialApi?.stop();
   els.onboarding.classList.remove("hidden");
   els.btnLogout.classList.add("hidden");
   els.mainNav.classList.add("hidden");
@@ -161,6 +171,7 @@ function showLoggedOut() {
 }
 
 function showLoggedIn() {
+  hideOverlays();
   els.onboarding.classList.add("hidden");
   els.btnLogout.classList.remove("hidden");
   els.mainNav.classList.remove("hidden");
@@ -170,6 +181,7 @@ function showLoggedIn() {
 
 function logout() {
   socialApi?.stop();
+  hideOverlays();
   clearUser();
   showLoggedOut();
   showToast("Вы вышли");

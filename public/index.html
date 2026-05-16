@@ -102,7 +102,7 @@
       <section id="leaderboard" class="screen hidden">
         <h2 class="section-title">Рейтинг</h2>
         <ol id="leaderboard-list" class="leaderboard-list"></ol>
-        <p id="leaderboard-empty" class="empty hidden">Пока нет оценок</p>
+        <p id="leaderboard-empty" class="empty hidden">Никого в рейтинге</p>
       </section>
 
       <section id="profile" class="screen hidden">
@@ -136,10 +136,11 @@
         </form>
       </section>
     </main>
+  </div>
 
-    <div id="toast" class="toast hidden" role="status"></div>
+  <div id="toast" class="toast hidden" role="status"></div>
 
-    <div id="chat-overlay" class="overlay hidden">
+    <div id="chat-overlay" class="overlay hidden" hidden>
       <div class="overlay-panel chat-panel">
         <header class="overlay-header">
           <img id="chat-peer-photo" class="chat-peer-photo" alt="" />
@@ -154,7 +155,7 @@
       </div>
     </div>
 
-    <div id="call-overlay" class="overlay hidden">
+    <div id="call-overlay" class="overlay hidden" hidden>
       <div class="overlay-panel call-panel">
         <p class="call-icon">📞</p>
         <h2 id="call-peer-name"></h2>
@@ -163,13 +164,13 @@
       </div>
     </div>
 
-    <div id="incoming-call" class="incoming-call hidden">
+    <div id="incoming-call" class="incoming-call hidden" hidden>
       <p id="incoming-text"></p>
       <button type="button" id="incoming-accept" class="btn btn-primary">Принять</button>
       <button type="button" id="incoming-decline" class="btn btn-secondary">Отклонить</button>
     </div>
 
-    <div id="rate-overlay" class="overlay hidden">
+    <div id="rate-overlay" class="overlay hidden" hidden>
       <div class="overlay-panel rate-panel">
         <h2>Оценить</h2>
         <form id="rate-form">
@@ -182,12 +183,11 @@
         </form>
       </div>
     </div>
-  </div>
 
   <script src="/js/app.js" type="module"></script>
   <script>
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/sw.js?v=6").then((reg) => reg.update()).catch(() => {});
     }
   </script>
 </body>

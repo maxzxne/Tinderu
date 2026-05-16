@@ -187,25 +187,23 @@ export function registerSocialRoutes(app, db, helpers) {
 
     const profileRows = db
       .prepare(
-        `SELECT p.*, ROUND(AVG(r.score), 1) AS rating_avg, COUNT(r.score) AS rating_count
+        `SELECT p.*,
+                COALESCE(ROUND(AVG(r.score), 1), 0) AS rating_avg,
+                COUNT(r.score) AS rating_count
          FROM profiles p
          LEFT JOIN ratings r ON r.target_id = p.id AND r.target_type = 'profile'
-         GROUP BY p.id
-         HAVING rating_count > 0
-         ORDER BY rating_avg DESC, rating_count DESC
-         LIMIT 20`
+         GROUP BY p.id`
       )
       .all();
 
     const userRows = db
       .prepare(
-        `SELECT u.*, ROUND(AVG(r.score), 1) AS rating_avg, COUNT(r.score) AS rating_count
+        `SELECT u.*,
+                COALESCE(ROUND(AVG(r.score), 1), 0) AS rating_avg,
+                COUNT(r.score) AS rating_count
          FROM users u
          LEFT JOIN ratings r ON r.target_id = u.id AND r.target_type = 'user'
-         GROUP BY u.id
-         HAVING rating_count > 0
-         ORDER BY rating_avg DESC, rating_count DESC
-         LIMIT 20`
+         GROUP BY u.id`
       )
       .all();
 
@@ -487,6 +485,23 @@ export function registerSocialRoutes(app, db, helpers) {
       }))
     );
   });
+
+  function seedRatings() {
+    const count = db.prepare("SELECT COUNT(*) AS n FROM ratings").get().n;
+    if (count > 0) return;
+
+    const profiles = db.prepare("SELECT id FROM profiles").all();
+    const insert = db.prepare(
+      `INSERT INTO ratings (id, user_id, target_id, target_type, score)
+       VALUES (?, 'seed', ?, 'profile', ?)`
+    );
+    const scores = [5, 4, 5, 3, 4, 5, 4, 3];
+    profiles.forEach((p, i) => {
+      insert.run(randomUUID(), p.id, scores[i % scores.length]);
+    });
+  }
+
+  seedRatings();
 
   return { createMatch, enrichMatch, getRatingStats, toPublicProfile, toPublicPersonFromUser };
 }

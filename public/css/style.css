@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none !important;
+}
+
 :root {
   --pink: #fe3c72;
   --pink-dark: #e62e5c;
@@ -392,8 +396,17 @@ main {
   flex: 1;
 }
 
-#profile {
+#profile,
+#users,
+#leaderboard,
+#matches {
   overflow-y: auto;
+  flex: 1;
+}
+
+.users-list,
+.leaderboard-list {
+  padding-bottom: 24px;
 }
 
 .card-stack {

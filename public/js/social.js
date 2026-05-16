@@ -1,5 +1,7 @@
+import { showOverlay, hideOverlay } from "./overlay.js";
+
 export function initSocial(ctx) {
-  const { api, showToast, escapeHtml, els, user, setTab } = ctx;
+  const { api, showToast, escapeHtml, els, user } = ctx;
 
   let chatPoll = null;
   let callPoll = null;
@@ -21,7 +23,7 @@ export function initSocial(ctx) {
     activeChat = match;
     els.chatTitle.textContent = match.peer.name;
     els.chatPeerPhoto.src = match.peer.photo;
-    els.chatOverlay.classList.remove("hidden");
+    showOverlay(els.chatOverlay);
     loadMessages();
     if (chatPoll) clearInterval(chatPoll);
     chatPoll = setInterval(loadMessages, 2500);
@@ -29,7 +31,7 @@ export function initSocial(ctx) {
 
   function closeChat() {
     activeChat = null;
-    els.chatOverlay.classList.add("hidden");
+    hideOverlay(els.chatOverlay);
     if (chatPoll) clearInterval(chatPoll);
     chatPoll = null;
   }
@@ -69,7 +71,8 @@ export function initSocial(ctx) {
   }
 
   async function loadUsers() {
-    const sort = els.usersSort.value;
+    try {
+    const sort = els.usersSort?.value || "rating";
     const people = await api(`/api/users?sort=${sort}`);
     els.usersList.innerHTML = "";
     els.usersEmpty.classList.toggle("hidden", people.length > 0);
@@ -87,9 +90,13 @@ export function initSocial(ctx) {
       `;
       els.usersList.appendChild(li);
     }
+    } catch (err) {
+      showToast(err.message);
+    }
   }
 
   async function loadLeaderboard() {
+    try {
     const board = await api("/api/ratings/leaderboard");
     els.leaderboardList.innerHTML = "";
     els.leaderboardEmpty.classList.toggle("hidden", board.length > 0);
@@ -106,6 +113,9 @@ export function initSocial(ctx) {
       `;
       els.leaderboardList.appendChild(li);
     });
+    } catch (err) {
+      showToast(err.message);
+    }
   }
 
   async function loadMatchesList() {
@@ -139,11 +149,11 @@ export function initSocial(ctx) {
   function openRateModal(targetId, targetType) {
     els.rateTargetId.value = targetId;
     els.rateTargetType.value = targetType;
-    els.rateOverlay.classList.remove("hidden");
+    showOverlay(els.rateOverlay);
   }
 
   function closeRateModal() {
-    els.rateOverlay.classList.add("hidden");
+    hideOverlay(els.rateOverlay);
   }
 
   async function submitRating(e) {
@@ -167,11 +177,11 @@ export function initSocial(ctx) {
   function showCallUI(peerName, statusText) {
     els.callPeerName.textContent = peerName;
     els.callStatus.textContent = statusText;
-    els.callOverlay.classList.remove("hidden");
+    showOverlay(els.callOverlay);
   }
 
   function hideCallUI() {
-    els.callOverlay.classList.add("hidden");
+    hideOverlay(els.callOverlay);
     if (callPoll) clearInterval(callPoll);
     callPoll = null;
     if (pc) {
@@ -250,10 +260,10 @@ export function initSocial(ctx) {
     if (activeCall) return;
     const incoming = await api("/api/calls/incoming").catch(() => null);
     if (!incoming) {
-      els.incomingCall.classList.add("hidden");
+      hideOverlay(els.incomingCall);
       return;
     }
-    els.incomingCall.classList.remove("hidden");
+    showOverlay(els.incomingCall);
     els.incomingText.textContent = `Входящий звонок — ${incoming.match?.peer?.name || "пользователь"}`;
     els.incomingCall.dataset.callId = incoming.callId;
   }
@@ -268,7 +278,7 @@ export function initSocial(ctx) {
   els.incomingAccept.addEventListener("click", async () => {
     const callId = els.incomingCall.dataset.callId;
     await api(`/api/calls/${callId}/accept`, { method: "POST" });
-    els.incomingCall.classList.add("hidden");
+    hideOverlay(els.incomingCall);
     activeCall = { callId };
     showCallUI("Собеседник", "Разговор");
     callPoll = setInterval(pollSignals, 1500);
@@ -277,8 +287,13 @@ export function initSocial(ctx) {
   els.incomingDecline.addEventListener("click", async () => {
     const callId = els.incomingCall.dataset.callId;
     await api(`/api/calls/${callId}/end`, { method: "POST" });
-    els.incomingCall.classList.add("hidden");
+    hideOverlay(els.incomingCall);
   });
+
+  hideOverlay(els.chatOverlay);
+  hideOverlay(els.callOverlay);
+  hideOverlay(els.incomingCall);
+  hideOverlay(els.rateOverlay);
 
   document.addEventListener("click", (e) => {
     const chatBtn = e.target.closest(".btn-chat");

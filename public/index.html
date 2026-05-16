@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#fe3c72" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Tinderu" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <title>Tinderu</title>
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="header-top">
+        <h1 class="logo">Tinderu</h1>
+        <button type="button" id="user-chip" class="user-chip hidden" aria-label="Мой профиль">
+          <img id="user-avatar" class="user-avatar" alt="" width="32" height="32" />
+          <span id="user-name" class="user-name"></span>
+        </button>
+        <button type="button" id="btn-logout" class="btn-logout hidden" aria-label="Выйти">Выйти</button>
+      </div>
+      <nav id="main-nav" class="tabs hidden" role="tablist">
+        <button type="button" class="tab active" data-tab="discover" role="tab" aria-selected="true">Лента</button>
+        <button type="button" class="tab" data-tab="matches" role="tab" aria-selected="false">
+          Матчи <span id="match-badge" class="badge hidden">0</span>
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="onboarding" class="screen hidden">
+        <div class="onboarding-card">
+          <p class="onboarding-emoji">🔥</p>
+          <h2 id="auth-title">Вход</h2>
+
+          <div class="auth-tabs" role="tablist">
+            <button type="button" class="auth-tab active" data-auth-mode="login">Вход</button>
+            <button type="button" class="auth-tab" data-auth-mode="register">Регистрация</button>
+          </div>
+
+          <form id="login-form" class="auth-form">
+            <input type="text" name="login" placeholder="Логин" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required autocomplete="username" />
+            <input type="password" name="password" placeholder="Пароль" minlength="4" required autocomplete="current-password" />
+            <button type="submit" class="btn btn-primary">Войти</button>
+          </form>
+
+          <form id="register-form" class="auth-form hidden" enctype="multipart/form-data">
+            <input type="text" name="login" placeholder="Логин (латиница, цифры, _)" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required autocomplete="username" />
+            <input type="password" name="password" placeholder="Пароль (мин. 4 символа)" minlength="4" required autocomplete="new-password" />
+            <input type="text" name="name" placeholder="Имя" maxlength="40" required autocomplete="name" />
+            <label class="field-label" for="gender-input">Пол</label>
+            <select id="gender-input" name="gender" class="select-input" required>
+              <option value="">Выберите пол</option>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+            <label class="field-label" for="dob-input">Дата рождения</label>
+            <input type="date" id="dob-input" name="dateOfBirth" required />
+            <label class="photo-upload">
+              <input type="file" id="photo-input" name="photo" accept="image/jpeg,image/png,image/webp" hidden />
+              <img id="photo-preview" class="photo-preview hidden" alt="Превью" />
+              <span id="photo-label" class="photo-label">Фото (необязательно)</span>
+            </label>
+            <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="discover" class="screen">
+        <div class="card-stack" id="card-stack"></div>
+        <p id="empty-state" class="empty hidden">Карточки закончились. Загляните позже!</p>
+        <div class="actions">
+          <button type="button" id="btn-nope" class="action-btn nope" aria-label="Пропустить">✕</button>
+          <button type="button" id="btn-like" class="action-btn like" aria-label="Нравится">♥</button>
+        </div>
+      </section>
+
+      <section id="matches" class="screen hidden">
+        <ul id="matches-list" class="matches-list"></ul>
+        <p id="matches-empty" class="empty hidden">Пока нет матчей. Ставьте лайки!</p>
+      </section>
+
+      <section id="profile" class="screen hidden">
+        <div id="profile-view" class="profile-card">
+          <img id="profile-photo-view" class="profile-photo" alt="" />
+          <h2 id="profile-name-view"></h2>
+          <p id="profile-meta-view" class="profile-meta"></p>
+          <p id="profile-bio-view" class="profile-bio"></p>
+          <button type="button" id="btn-edit-profile" class="btn btn-primary">Редактировать</button>
+        </div>
+
+        <form id="profile-edit-form" class="profile-card hidden" enctype="multipart/form-data">
+          <label class="photo-upload profile-photo-upload">
+            <input type="file" id="profile-photo-input" name="photo" accept="image/jpeg,image/png,image/webp" hidden />
+            <img id="profile-photo-edit" class="profile-photo" alt="Ваше фото" />
+            <span class="photo-label">Изменить фото</span>
+          </label>
+          <input type="text" name="name" id="profile-name-input" placeholder="Имя" maxlength="40" required />
+          <label class="field-label" for="profile-gender-input">Пол</label>
+          <select id="profile-gender-input" name="gender" class="select-input" required>
+            <option value="male">Мужской</option>
+            <option value="female">Женский</option>
+          </select>
+          <label class="field-label" for="profile-dob-input">Дата рождения</label>
+          <input type="date" id="profile-dob-input" name="dateOfBirth" required />
+          <textarea name="bio" id="profile-bio-input" placeholder="О себе (необязательно)" maxlength="200" rows="3"></textarea>
+          <div class="profile-actions">
+            <button type="button" id="btn-cancel-edit" class="btn btn-secondary">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+  </div>
+
+  <script src="/js/app.js" type="module"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>

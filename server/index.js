@@ -509,7 +509,17 @@ app.post("/api/swipe", (req, res) => {
 app.use("/uploads", express.static(UPLOADS_DIR, { maxAge: "7d", etag: true }));
 
 const publicDir = path.join(__dirname, "..", "public");
-app.use(express.static(publicDir, { maxAge: "1h", etag: true }));
+app.use(
+  express.static(publicDir, {
+    etag: true,
+    maxAge: "7d",
+    setHeaders(res, filePath) {
+      if (/\.(html|js|css|webmanifest)$/.test(filePath)) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  })
+);
 
 app.use((req, res, next) => {
   if (req.method !== "GET" || req.path.startsWith("/api")) return next();

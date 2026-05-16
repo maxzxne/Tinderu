@@ -1,5 +1,37 @@
 import { showOverlay, hideOverlay } from "./overlay.js";
 
+const DEFAULT_AVATAR = "/icons/icon-192.png";
+
+function normalizePeer(peer) {
+  if (!peer || typeof peer !== "object") {
+    return {
+      id: "",
+      type: "profile",
+      name: "Профиль",
+      age: "—",
+      bio: "",
+      photo: DEFAULT_AVATAR,
+      ratingAvg: 0,
+      ratingCount: 0,
+    };
+  }
+  return {
+    id: peer.id || "",
+    type: peer.type || "profile",
+    name: peer.name || "Без имени",
+    age: peer.age ?? "—",
+    bio: peer.bio || "",
+    photo: peer.photo || DEFAULT_AVATAR,
+    ratingAvg: peer.ratingAvg ?? 0,
+    ratingCount: peer.ratingCount ?? 0,
+  };
+}
+
+function personLabel(peer) {
+  const p = normalizePeer(peer);
+  return `${p.name}, ${p.age}`;
+}
+
 export function initSocial(ctx) {
   const { api, showToast, escapeHtml, els, user } = ctx;
 
@@ -20,9 +52,10 @@ export function initSocial(ctx) {
   }
 
   function openChat(match) {
-    activeChat = match;
-    els.chatTitle.textContent = match.peer.name;
-    els.chatPeerPhoto.src = match.peer.photo;
+    const peer = normalizePeer(match.peer);
+    activeChat = { ...match, peer };
+    els.chatTitle.textContent = peer.name;
+    els.chatPeerPhoto.src = peer.photo;
     showOverlay(els.chatOverlay);
     loadMessages();
     if (chatPoll) clearInterval(chatPoll);
@@ -77,16 +110,17 @@ export function initSocial(ctx) {
     els.usersList.innerHTML = "";
     els.usersEmpty.classList.toggle("hidden", people.length > 0);
     for (const p of people) {
+      const person = normalizePeer(p);
       const li = document.createElement("li");
       li.className = "user-item";
       li.innerHTML = `
-        <img src="${p.photo}" alt="" />
+        <img src="${person.photo}" alt="" loading="lazy" onerror="this.src='${DEFAULT_AVATAR}'" />
         <div class="user-item-info">
-          <h3>${escapeHtml(p.name)}, ${p.age}</h3>
-          <p>${escapeHtml(p.bio || "")}</p>
-          ${starsHtml(p.ratingAvg, p.ratingCount)}
+          <h3>${escapeHtml(person.name)}, ${person.age}</h3>
+          <p>${escapeHtml(person.bio || "")}</p>
+          ${starsHtml(person.ratingAvg, person.ratingCount)}
         </div>
-        <button type="button" class="btn-rate-mini" data-id="${p.id}" data-type="${p.type}">★</button>
+        <button type="button" class="btn-rate-mini" data-id="${person.id}" data-type="${person.type}">★</button>
       `;
       els.usersList.appendChild(li);
     }
@@ -101,14 +135,15 @@ export function initSocial(ctx) {
     els.leaderboardList.innerHTML = "";
     els.leaderboardEmpty.classList.toggle("hidden", board.length > 0);
     board.forEach((p, i) => {
+      const person = normalizePeer(p);
       const li = document.createElement("li");
       li.className = "leader-item";
       li.innerHTML = `
         <span class="leader-rank">${i + 1}</span>
-        <img src="${p.photo}" alt="" />
+        <img src="${person.photo}" alt="" loading="lazy" onerror="this.src='${DEFAULT_AVATAR}'" />
         <div class="leader-info">
-          <h3>${escapeHtml(p.name)}</h3>
-          ${starsHtml(p.ratingAvg, p.ratingCount)}
+          <h3>${escapeHtml(person.name)}, ${person.age}</h3>
+          ${starsHtml(person.ratingAvg, person.ratingCount)}
         </div>
       `;
       els.leaderboardList.appendChild(li);
@@ -119,6 +154,7 @@ export function initSocial(ctx) {
   }
 
   async function loadMatchesList() {
+    try {
     const matches = await api("/api/matches");
     els.matchesList.innerHTML = "";
     els.matchesEmpty.classList.toggle("hidden", matches.length > 0);
@@ -126,23 +162,28 @@ export function initSocial(ctx) {
     els.matchBadge.classList.toggle("hidden", matches.length === 0);
 
     for (const m of matches) {
-      matchCache.set(m.matchId, m);
+      const peer = normalizePeer(m.peer);
+      const item = { ...m, peer };
+      matchCache.set(m.matchId, item);
       const li = document.createElement("li");
       li.className = "match-item";
       li.innerHTML = `
-        <img src="${m.peer.photo}" alt="" />
+        <img src="${peer.photo}" alt="" loading="lazy" onerror="this.src='${DEFAULT_AVATAR}'" />
         <div class="match-item-body">
-          <h3>${escapeHtml(m.peer.name)}, ${m.peer.age}</h3>
+          <h3>${escapeHtml(personLabel(peer))}</h3>
           <p class="match-preview">${escapeHtml(m.lastMessage || "Написать сообщение…")}</p>
-          ${starsHtml(m.peer.ratingAvg, m.peer.ratingCount)}
+          ${starsHtml(peer.ratingAvg, peer.ratingCount)}
         </div>
         <div class="match-actions">
           <button type="button" class="btn-icon btn-chat" data-match-id="${m.matchId}" title="Чат">💬</button>
           <button type="button" class="btn-icon btn-call" data-match-id="${m.matchId}" title="Звонок">📞</button>
-          <button type="button" class="btn-icon btn-rate" data-id="${m.peer.id}" data-type="${m.peer.type}" title="Оценить">★</button>
+          <button type="button" class="btn-icon btn-rate" data-id="${peer.id}" data-type="${peer.type}" title="Оценить">★</button>
         </div>
       `;
       els.matchesList.appendChild(li);
+    }
+    } catch (err) {
+      showToast(err.message);
     }
   }
 

@@ -10,7 +10,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="icon" type="image/png" href="/icons/icon-192.png" />
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/style.css?v=7" />
   <title>Tinderu</title>
 </head>
 <body>
@@ -184,10 +184,10 @@
       </div>
     </div>
 
-  <script src="/js/app.js" type="module"></script>
+  <script src="/js/app.js?v=7" type="module"></script>
   <script>
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js?v=6").then((reg) => reg.update()).catch(() => {});
+      navigator.serviceWorker.register("/sw.js?v=7").then((reg) => reg.update()).catch(() => {});
     }
   </script>
 </body>

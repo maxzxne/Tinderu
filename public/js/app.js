@@ -520,6 +520,8 @@ async function init() {
   showLoggedIn();
   await loadCards();
   await socialApi.loadMatchesList();
+  socialApi.loadUsers();
+  socialApi.loadLeaderboard();
 }
 
 init();

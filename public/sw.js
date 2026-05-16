@@ -1,4 +1,4 @@
-const CACHE = "tinderu-v6";
+const CACHE = "tinderu-v7";
 
 const PRECACHE = [
   "/",

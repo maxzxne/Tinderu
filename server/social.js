@@ -104,12 +104,24 @@ export function registerSocialRoutes(app, db, helpers) {
   }
 
   function getPeer(peerId, peerType) {
-    if (peerType === "profile") {
+    const type = String(peerType || "profile").toLowerCase();
+    if (type === "profile") {
       const row = db.prepare("SELECT * FROM profiles WHERE id = ?").get(peerId);
       return row ? toPublicProfile(row) : null;
     }
-    const row = getCurrentUser(peerId);
-    return row ? toPublicPersonFromUser(row) : null;
+    if (type === "user") {
+      const row = getCurrentUser(peerId);
+      return row ? toPublicPersonFromUser(row) : null;
+    }
+    return null;
+  }
+
+  function repairMatches(userId) {
+    const rows = db.prepare("SELECT * FROM matches WHERE user_id = ?").all(userId);
+    const del = db.prepare("DELETE FROM matches WHERE id = ?");
+    for (const row of rows) {
+      if (!getPeer(row.peer_id, row.peer_type)) del.run(row.id);
+    }
   }
 
   function createMatch(userId, peerId, peerType) {
@@ -272,12 +284,17 @@ export function registerSocialRoutes(app, db, helpers) {
     if (!userId) return res.status(401).json({ error: "Нужен X-User-Id" });
 
     syncMatchesFromSwipes(userId);
+    repairMatches(userId);
 
     const rows = db
       .prepare("SELECT * FROM matches WHERE user_id = ? ORDER BY created_at DESC")
       .all(userId);
 
-    res.json(rows.map(enrichMatch).filter((m) => m.peer));
+    res.json(
+      rows
+        .map(enrichMatch)
+        .filter((m) => m.peer && m.peer.name)
+    );
   });
 
   app.get("/api/matches/:matchId/messages", (req, res) => {

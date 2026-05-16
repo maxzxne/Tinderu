@@ -1,3 +1,5 @@
+import { initSocial } from "./social.js";
+
 const STORAGE_KEY = "tinderu_user";
 
 const $ = (sel) => document.querySelector(sel);
@@ -42,9 +44,38 @@ const els = {
   profileBioInput: $("#profile-bio-input"),
   btnEditProfile: $("#btn-edit-profile"),
   btnCancelEdit: $("#btn-cancel-edit"),
+  users: $("#users"),
+  leaderboard: $("#leaderboard"),
+  usersList: $("#users-list"),
+  usersEmpty: $("#users-empty"),
+  usersSort: $("#users-sort"),
+  leaderboardList: $("#leaderboard-list"),
+  leaderboardEmpty: $("#leaderboard-empty"),
+  chatOverlay: $("#chat-overlay"),
+  chatTitle: $("#chat-title"),
+  chatPeerPhoto: $("#chat-peer-photo"),
+  chatMessages: $("#chat-messages"),
+  chatForm: $("#chat-form"),
+  chatInput: $("#chat-input"),
+  chatClose: $("#chat-close"),
+  callOverlay: $("#call-overlay"),
+  callPeerName: $("#call-peer-name"),
+  callStatus: $("#call-status"),
+  callEnd: $("#call-end"),
+  incomingCall: $("#incoming-call"),
+  incomingText: $("#incoming-text"),
+  incomingAccept: $("#incoming-accept"),
+  incomingDecline: $("#incoming-decline"),
+  rateOverlay: $("#rate-overlay"),
+  rateForm: $("#rate-form"),
+  rateTargetId: $("#rate-target-id"),
+  rateTargetType: $("#rate-target-type"),
+  rateScore: $("#rate-score"),
+  rateClose: $("#rate-close"),
 };
 
 let user = null;
+let socialApi = null;
 let cards = [];
 let swiping = false;
 let authMode = "login";
@@ -111,6 +142,8 @@ function hideAllScreens() {
   els.onboarding.classList.add("hidden");
   els.discover.classList.add("hidden");
   els.matches.classList.add("hidden");
+  els.users.classList.add("hidden");
+  els.leaderboard.classList.add("hidden");
   els.profile.classList.add("hidden");
 }
 
@@ -136,6 +169,7 @@ function showLoggedIn() {
 }
 
 function logout() {
+  socialApi?.stop();
   clearUser();
   showLoggedOut();
   showToast("Вы вышли");
@@ -173,7 +207,15 @@ function setTab(tab) {
   if (tab === "discover") els.discover.classList.remove("hidden");
   if (tab === "matches") {
     els.matches.classList.remove("hidden");
-    loadMatches();
+    socialApi?.loadMatchesList();
+  }
+  if (tab === "users") {
+    els.users.classList.remove("hidden");
+    socialApi?.loadUsers();
+  }
+  if (tab === "leaderboard") {
+    els.leaderboard.classList.remove("hidden");
+    socialApi?.loadLeaderboard();
   }
   if (tab === "profile") {
     els.profile.classList.remove("hidden");
@@ -185,7 +227,10 @@ function fillProfileView() {
   if (!user) return;
   els.profilePhotoView.src = user.photo;
   els.profileNameView.textContent = `${user.name}, ${user.age}`;
-  els.profileMetaView.textContent = `@${user.login} · ${user.genderLabel || ""}`;
+  const rating = user.ratingCount
+    ? ` · ★ ${user.ratingAvg} (${user.ratingCount})`
+    : "";
+  els.profileMetaView.textContent = `@${user.login} · ${user.genderLabel || ""}${rating}`;
   els.profileBioView.textContent = user.bio?.trim() || "Нет описания";
 }
 
@@ -233,7 +278,7 @@ async function onAuthSuccess(u) {
   activeTab = "discover";
   showLoggedIn();
   await loadCards();
-  await loadMatches();
+  socialApi?.loadMatchesList();
 }
 
 function createCardEl(profile) {
@@ -275,28 +320,6 @@ async function loadCards() {
   renderStack();
 }
 
-async function loadMatches() {
-  const matches = await api("/api/matches");
-  els.matchesList.innerHTML = "";
-  els.matchesEmpty.classList.toggle("hidden", matches.length > 0);
-
-  els.matchBadge.textContent = matches.length;
-  els.matchBadge.classList.toggle("hidden", matches.length === 0);
-
-  for (const m of matches) {
-    const li = document.createElement("li");
-    li.className = "match-item";
-    li.innerHTML = `
-      <img src="${m.photo}" alt="" />
-      <div>
-        <h3>${escapeHtml(m.name)}, ${m.age}</h3>
-        <p>${escapeHtml(m.bio)}</p>
-      </div>
-    `;
-    els.matchesList.appendChild(li);
-  }
-}
-
 async function swipe(profileId, liked) {
   if (swiping) return;
   swiping = true;
@@ -308,7 +331,7 @@ async function swipe(profileId, liked) {
     cards.pop();
     if (match) {
       showToast("Это матч! 🎉");
-      await loadMatches();
+      await socialApi?.loadMatchesList();
     }
     renderStack();
   } finally {
@@ -470,9 +493,21 @@ async function init() {
     return;
   }
 
+  socialApi = initSocial({
+    api,
+    showToast,
+    escapeHtml,
+    els,
+    user,
+    get activeTab() {
+      return activeTab;
+    },
+    setTab,
+  });
+
   showLoggedIn();
   await loadCards();
-  await loadMatches();
+  await socialApi.loadMatchesList();
 }
 
 init();

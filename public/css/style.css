@@ -133,19 +133,22 @@ body {
 
 .tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: center;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .tab {
-  flex: 1;
-  max-width: 160px;
-  padding: 10px 16px;
+  flex: 0 0 auto;
+  min-width: 64px;
+  max-width: none;
+  padding: 8px 10px;
   border: none;
   border-radius: 999px;
   background: var(--card-bg);
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
@@ -522,31 +525,255 @@ main {
   gap: 12px;
 }
 
-.match-item {
+.match-item,
+.user-item,
+.leader-item {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   padding: 12px;
   border-radius: 16px;
   background: var(--card-bg);
 }
 
-.match-item img {
+.match-item img,
+.user-item img,
+.leader-item img {
   width: 56px;
   height: 56px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
-.match-item h3 {
+.match-item-body,
+.user-item-info,
+.leader-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-item h3,
+.user-item h3,
+.leader-info h3 {
   margin: 0 0 2px;
   font-size: 1rem;
 }
 
-.match-item p {
+.match-item p,
+.user-item p,
+.match-preview {
   margin: 0;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.match-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-rate-mini {
+  border: none;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.stars {
+  color: #ffc107;
+}
+
+.users-list,
+.leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leaderboard-list {
+  list-style: none;
+  counter-reset: rank;
+}
+
+.leader-rank {
+  font-weight: 800;
+  color: var(--pink);
+  min-width: 1.5rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  padding-bottom: calc(16px + var(--safe-bottom));
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-panel {
+  width: 100%;
+  max-width: 430px;
+  max-height: 90dvh;
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-panel {
+  height: min(85dvh, 600px);
+}
+
+.overlay-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.chat-peer-photo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.overlay-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.btn-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.msg {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.msg.mine {
+  align-self: flex-end;
+  background: var(--pink);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg.theirs {
+  align-self: flex-start;
+  background: var(--bg);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #2a2a36;
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.call-panel {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.call-icon {
+  font-size: 3rem;
+  margin: 0;
+}
+
+.call-status {
+  color: var(--muted);
+}
+
+.incoming-call {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(16px + var(--safe-bottom));
+  z-index: 250;
+  background: var(--card-bg);
+  border: 2px solid var(--pink);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.incoming-call.hidden {
+  display: none;
+}
+
+.rate-panel h2 {
+  margin: 0 0 12px;
+}
+
+.rate-panel form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .toast {

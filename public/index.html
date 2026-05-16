@@ -25,10 +25,12 @@
         <button type="button" id="btn-logout" class="btn-logout hidden" aria-label="Выйти">Выйти</button>
       </div>
       <nav id="main-nav" class="tabs hidden" role="tablist">
-        <button type="button" class="tab active" data-tab="discover" role="tab" aria-selected="true">Лента</button>
-        <button type="button" class="tab" data-tab="matches" role="tab" aria-selected="false">
-          Матчи <span id="match-badge" class="badge hidden">0</span>
+        <button type="button" class="tab active" data-tab="discover" role="tab">Лента</button>
+        <button type="button" class="tab" data-tab="matches" role="tab">
+          Чаты <span id="match-badge" class="badge hidden">0</span>
         </button>
+        <button type="button" class="tab" data-tab="users" role="tab">Люди</button>
+        <button type="button" class="tab" data-tab="leaderboard" role="tab">Топ</button>
       </nav>
     </header>
 
@@ -82,7 +84,25 @@
 
       <section id="matches" class="screen hidden">
         <ul id="matches-list" class="matches-list"></ul>
-        <p id="matches-empty" class="empty hidden">Пока нет матчей. Ставьте лайки!</p>
+        <p id="matches-empty" class="empty hidden">Пока нет чатов. Поставьте лайк в ленте!</p>
+      </section>
+
+      <section id="users" class="screen hidden">
+        <div class="toolbar">
+          <label for="users-sort">Сортировка</label>
+          <select id="users-sort" class="select-input">
+            <option value="rating">По рейтингу</option>
+            <option value="name">По имени</option>
+          </select>
+        </div>
+        <ul id="users-list" class="users-list"></ul>
+        <p id="users-empty" class="empty hidden">Никого не найдено</p>
+      </section>
+
+      <section id="leaderboard" class="screen hidden">
+        <h2 class="section-title">Рейтинг</h2>
+        <ol id="leaderboard-list" class="leaderboard-list"></ol>
+        <p id="leaderboard-empty" class="empty hidden">Пока нет оценок</p>
       </section>
 
       <section id="profile" class="screen hidden">
@@ -118,6 +138,50 @@
     </main>
 
     <div id="toast" class="toast hidden" role="status"></div>
+
+    <div id="chat-overlay" class="overlay hidden">
+      <div class="overlay-panel chat-panel">
+        <header class="overlay-header">
+          <img id="chat-peer-photo" class="chat-peer-photo" alt="" />
+          <h2 id="chat-title"></h2>
+          <button type="button" id="chat-close" class="btn-close" aria-label="Закрыть">✕</button>
+        </header>
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="chat-form">
+          <input type="text" id="chat-input" placeholder="Сообщение…" maxlength="500" required autocomplete="off" />
+          <button type="submit" class="btn btn-primary">→</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="call-overlay" class="overlay hidden">
+      <div class="overlay-panel call-panel">
+        <p class="call-icon">📞</p>
+        <h2 id="call-peer-name"></h2>
+        <p id="call-status" class="call-status">Соединение…</p>
+        <button type="button" id="call-end" class="btn btn-primary">Завершить</button>
+      </div>
+    </div>
+
+    <div id="incoming-call" class="incoming-call hidden">
+      <p id="incoming-text"></p>
+      <button type="button" id="incoming-accept" class="btn btn-primary">Принять</button>
+      <button type="button" id="incoming-decline" class="btn btn-secondary">Отклонить</button>
+    </div>
+
+    <div id="rate-overlay" class="overlay hidden">
+      <div class="overlay-panel rate-panel">
+        <h2>Оценить</h2>
+        <form id="rate-form">
+          <input type="hidden" id="rate-target-id" />
+          <input type="hidden" id="rate-target-type" />
+          <label for="rate-score">Оценка (1–5)</label>
+          <input type="number" id="rate-score" min="1" max="5" value="5" required class="select-input" />
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+          <button type="button" id="rate-close" class="btn btn-secondary">Отмена</button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <script src="/js/app.js" type="module"></script>

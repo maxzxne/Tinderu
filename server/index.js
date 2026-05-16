@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
+import { registerSocialRoutes } from "./social.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -159,7 +160,7 @@ function genderLabel(gender) {
   return gender === "male" ? "Мужской" : "Женский";
 }
 
-function toPublicUser(row) {
+function toPublicUser(row, rating) {
   return {
     id: row.id,
     login: row.login,
@@ -170,6 +171,8 @@ function toPublicUser(row) {
     genderLabel: genderLabel(row.gender),
     bio: row.bio || "",
     photo: row.photo,
+    ratingAvg: rating?.ratingAvg ?? 0,
+    ratingCount: rating?.ratingCount ?? 0,
   };
 }
 
@@ -282,6 +285,27 @@ function seedDemoUsers() {
 seedProfiles();
 seedDemoUsers();
 
+const social = registerSocialRoutes(app, db, {
+  getUserId: (req) => req.headers["x-user-id"] || req.body?.userId,
+  getCurrentUser,
+  oppositeGender,
+  validateGender,
+  calcAge,
+  genderLabel,
+  toPublicUser: (row) => {
+    const stats = db
+      .prepare(
+        `SELECT ROUND(AVG(score), 1) AS ratingAvg, COUNT(*) AS ratingCount
+         FROM ratings WHERE target_id = ? AND target_type = 'user'`
+      )
+      .get(row.id);
+    return toPublicUser(row, {
+      ratingAvg: stats?.ratingAvg ?? 0,
+      ratingCount: stats?.ratingCount ?? 0,
+    });
+  },
+});
+
 function getUserId(req) {
   return req.headers["x-user-id"] || req.body?.userId;
 }
@@ -345,7 +369,7 @@ app.post("/api/auth/register", (req, res) => {
 
     seedProfileLikes(id, gender);
     const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
-    res.status(201).json(toPublicUser(user));
+    res.status(201).json(social.toPublicPersonFromUser(user));
   });
 });
 
@@ -362,7 +386,7 @@ app.post("/api/auth/login", (req, res) => {
     return res.status(401).json({ error: "Неверный логин или пароль" });
   }
 
-  res.json(toPublicUser(row));
+  res.json(social.toPublicPersonFromUser(row));
 });
 
 app.get("/api/auth/me", (req, res) => {
@@ -371,7 +395,7 @@ app.get("/api/auth/me", (req, res) => {
 
   const row = getCurrentUser(userId);
   if (!row) return res.status(404).json({ error: "Пользователь не найден" });
-  res.json(toPublicUser(row));
+  res.json(social.toPublicPersonFromUser(row));
 });
 
 app.patch("/api/auth/me", (req, res) => {
@@ -416,7 +440,7 @@ app.patch("/api/auth/me", (req, res) => {
     ).run(name, dateOfBirth, gender, bio, photo, userId);
 
     const row = getCurrentUser(userId);
-    res.json(toPublicUser(row));
+    res.json(social.toPublicPersonFromUser(row));
   });
 });
 
@@ -475,34 +499,11 @@ app.post("/api/swipe", (req, res) => {
       db.prepare(
         "DELETE FROM profile_likes WHERE profile_id = ? AND user_id = ?"
       ).run(profileId, userId);
+      social.createMatch(userId, profileId, "profile");
     }
   }
 
   res.json({ match });
-});
-
-app.get("/api/matches", (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.status(401).json({ error: "Нужен X-User-Id" });
-
-  const me = getCurrentUser(userId);
-  const targetGender = oppositeGender(me.gender);
-
-  const matches = db
-    .prepare(
-      `SELECT p.id, p.name, p.age, p.bio, p.photo, p.gender
-       FROM profiles p
-       INNER JOIN swipes s ON s.profile_id = p.id AND s.user_id = ? AND s.liked = 1
-       WHERE p.gender = ?
-         AND NOT EXISTS (
-           SELECT 1 FROM profile_likes pl
-           WHERE pl.profile_id = p.id AND pl.user_id = ?
-         )
-       ORDER BY s.created_at DESC`
-    )
-    .all(userId, targetGender, userId);
-
-  res.json(matches);
 });
 
 app.use("/uploads", express.static(UPLOADS_DIR, { maxAge: "7d", etag: true }));

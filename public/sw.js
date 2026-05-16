@@ -1,4 +1,4 @@
-const CACHE = "tinderu-v3";
+const CACHE = "tinderu-v4";
 const ASSETS = [
   "/",
   "/index.html",

@@ -13,14 +13,17 @@ COPY public ./public
 
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV DATA_DIR=/data
+ENV DATA_DIR=/app/data
 
-RUN mkdir -p /data
-VOLUME ["/data"]
+RUN apk add --no-cache su-exec \
+  && mkdir -p /app/data/uploads
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 
-CMD ["node", "server/index.js"]
+ENTRYPOINT ["docker-entrypoint.sh"]

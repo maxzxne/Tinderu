@@ -5,9 +5,9 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      DATA_DIR: /data
+      DATA_DIR: /app/data
     volumes:
-      - tinderu_data:/data
+      - tinderu_data:/app/data
     restart: unless-stopped
 
 volumes:

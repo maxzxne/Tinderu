@@ -236,7 +236,51 @@ function seedProfiles() {
   insertMany(profiles);
 }
 
+function seedDemoUsers() {
+  const demos = [
+    {
+      login: "demo_anna",
+      password: "demo123",
+      name: "Анна",
+      dateOfBirth: "1998-03-15",
+      gender: "female",
+      bio: "Демо-аккаунт для теста",
+    },
+    {
+      login: "demo_ivan",
+      password: "demo123",
+      name: "Иван",
+      dateOfBirth: "1995-07-20",
+      gender: "male",
+      bio: "Демо-аккаунт для теста",
+    },
+  ];
+
+  const exists = db.prepare("SELECT 1 FROM users WHERE login = ?");
+  const insert = db.prepare(
+    `INSERT INTO users (id, login, password_hash, name, date_of_birth, gender, bio, photo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+
+  for (const d of demos) {
+    if (exists.get(d.login)) continue;
+    const id = randomUUID();
+    insert.run(
+      id,
+      d.login,
+      hashPassword(d.password),
+      d.name,
+      d.dateOfBirth,
+      d.gender,
+      d.bio,
+      DEFAULT_PHOTO
+    );
+    seedProfileLikes(id, d.gender);
+  }
+}
+
 seedProfiles();
+seedDemoUsers();
 
 function getUserId(req) {
   return req.headers["x-user-id"] || req.body?.userId;
@@ -247,7 +291,8 @@ function getCurrentUser(userId) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  const profiles = db.prepare("SELECT COUNT(*) AS n FROM profiles").get().n;
+  res.json({ ok: true, profiles });
 });
 
 app.post("/api/auth/register", (req, res) => {
@@ -471,5 +516,6 @@ app.use((req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Tinderu listening on :${PORT}`);
+  const profiles = db.prepare("SELECT COUNT(*) AS n FROM profiles").get().n;
+  console.log(`Tinderu listening on :${PORT}, seed profiles: ${profiles}`);
 });
